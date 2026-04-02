@@ -62,10 +62,13 @@ app.get('/api/suggestions', async (req, res) => {
   }
 });
 
-app.post('/api/suggestions', async (req, res) => {
-  const { username, message } = req.body;
+app.post('/api/scores', async (req, res) => {
+  const { username, score } = req.body;
   try {
-    await pool.query('INSERT INTO suggestions (username, message) VALUES ($1, $2)', [username, message]);
+    await pool.query(`
+      INSERT INTO scores (username, score) VALUES ($1, $2)
+      ON CONFLICT (username) DO UPDATE SET score = GREATEST(scores.score, EXCLUDED.score)
+    `, [username, score]);
     res.json({ success: true });
   } catch (err) {
     console.error(err);
