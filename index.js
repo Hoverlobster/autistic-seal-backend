@@ -31,24 +31,36 @@ pool.query(`
   );
 `).then(() => console.log('Tables ready')).catch(console.error);
 
-app.get('/api/scores', async (req, res) => {
+// POST /api/scores
+app.post("/api/scores", async (req, res) => {
+  const { username, score, session_id } = req.body;
   try {
-    const result = await pool.query('SELECT username, score FROM scores ORDER BY score DESC LIMIT 10');
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'DB error' });
-  }
-});
-
-app.post('/api/scores', async (req, res) => {
-  const { username, score } = req.body;
-  try {
-    await pool.query('INSERT INTO scores (username, score) VALUES ($1, $2)', [username, score]);
+    await pool.query(`
+      INSERT INTO scores (username, score, session_id)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (session_id) DO UPDATE
+      SET score = GREATEST(scores.score, EXCLUDED.score)
+    `, [username, score, session_id]);
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'DB error' });
+    res.status(500).json({ error: "DB error" });
+  }
+});
+
+// GET /api/scores
+app.get("/api/scores", async (req, res) => {
+  try {
+    const data = await pool.query(`
+      SELECT username, score
+      FROM scores
+      ORDER BY score DESC
+      LIMIT 10
+    `);
+    res.json(data.rows);
+  } catch (err) {
+    console.error(err);
+    res.json([]);
   }
 });
 
