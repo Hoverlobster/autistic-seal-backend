@@ -32,19 +32,19 @@ pool.query(`
 `).then(() => console.log('Tables ready')).catch(console.error);
 
 // POST /api/scores
-app.post("/api/scores", async (req, res) => {
-  const { username, score, session_id } = req.body;
+app.post('/api/scores', async (req, res) => {
+  const { username, score } = req.body;
   try {
-    await pool.query(`
-      INSERT INTO scores (username, score, session_id)
-      VALUES ($1, $2, $3)
-      ON CONFLICT (session_id) DO UPDATE
-      SET score = GREATEST(scores.score, EXCLUDED.score)
-    `, [username, score, session_id]);
+    await pool.query(
+      `INSERT INTO scores (username, score) VALUES ($1, $2)
+       ON CONFLICT (username) DO UPDATE 
+       SET score = GREATEST(scores.score, EXCLUDED.score)`,
+      [username, score]
+    );
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "DB error" });
+    res.status(500).json({ error: 'DB error' });
   }
 });
 
